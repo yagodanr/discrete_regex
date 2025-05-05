@@ -1,8 +1,11 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
 
+from queue import LifoQueue
+
 
 class State(ABC):
+    next_states: list[State] = []
 
     @abstractmethod
     def __init__(self) -> None:
@@ -28,12 +31,22 @@ class StartState(State):
     def __init__(self):
         super().__init__()
 
-    def check_self(self, char):
+    def check_self(self, char:str):
         return super().check_self(char)
 
 
 class TerminationState(State):
-    pass  # Implement
+    """
+    state for end of string
+    """
+
+    next_states: list[State] = []
+
+    def __init__(self):
+        self.next_states.append(self)
+
+    def check_self(self, char: str):
+        return True
 
 
 class DotState(State):
@@ -47,7 +60,7 @@ class DotState(State):
         super().__init__()
 
     def check_self(self, char: str):
-        pass  # Implement
+        return True  # any character is accepted
 
 
 class AsciiState(State):
@@ -56,13 +69,12 @@ class AsciiState(State):
     """
 
     next_states: list[State] = []
-    curr_sym = ""
 
     def __init__(self, symbol: str) -> None:
-        pass  # Implement
+        self.curr_sym = symbol
 
     def check_self(self, curr_char: str) -> State | Exception:
-        pass  # Implement
+        return self.curr_sym == curr_char
 
 
 class StarState(State):
@@ -70,7 +82,7 @@ class StarState(State):
     next_states: list[State] = []
 
     def __init__(self, checking_state: State):
-        pass  # Implement
+        self.next_states.append(checking_state)
 
     def check_self(self, char):
         for state in self.next_states:
@@ -84,46 +96,57 @@ class PlusState(State):
     next_states: list[State] = []
 
     def __init__(self, checking_state: State):
-        pass  # Implement
+        self.next_states.append(checking_state)
 
-    def check_self(self, char):
-        pass  # Implement
+    def check_self(self, char: str):
+        for state in self.next_states:
+            if state.check_self(char):
+                return True
+
+        return False
 
 
 class RegexFSM:
+    """
+    https://medium.com/@phanindramoganti/regex-under-the-hood-implementing-a-simple-regex-compiler-in-go-ef2af5c6079
+    """
     curr_state: State = StartState()
 
     def __init__(self, regex_expr: str) -> None:
 
         prev_state = self.curr_state
-        tmp_next_state = self.curr_state
 
+        stack = LifoQueue()
+        stack.put(self.curr_state)
         for char in regex_expr:
-            tmp_next_state = self.__init_next_state(char, prev_state, tmp_next_state)
-            prev_state.next_states.append(tmp_next_state)
+            new_state = None
 
-    def __init_next_state(
-        self, next_token: str, prev_state: State, tmp_next_state: State
-    ) -> State:
-        new_state = None
 
-        match next_token:
-            case next_token if next_token == ".":
+            if char == ".":
                 new_state = DotState()
-            case next_token if next_token == "*":
-                new_state = StarState(tmp_next_state)
-                # here you have to think, how to do it.
+            elif char == "*":
+                # make * state before the prev state
+                new_state = StarState(prev_state)
+                stack.get()
+                prev_prev = stack.get()
+                stack.put(prev_prev)
+                prev_prev.next_states.pop()
+                prev_prev.next_states.append(new_state)
+            elif char == "+":
+                new_state = PlusState(prev_state)
 
-            case next_token if next_token == "+":
-                pass  # Implement
-
-            case next_token if next_token.isascii():
-                new_state = AsciiState(next_token)
-
-            case _:
+            elif char.isascii():
+                new_state = AsciiState(char)
+            else:
                 raise AttributeError("Character is not supported")
 
-        return new_state
+            prev_state.next_states.append(new_state)
+            prev_state = new_state
+            stack.put(new_state)
+
+        last_state = stack.get()
+        last_state.next_states.append(TerminationState())
+
 
     def check_string(self):
         pass  # Implement
