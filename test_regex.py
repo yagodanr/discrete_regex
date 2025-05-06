@@ -101,11 +101,26 @@ class TestRegexFSM(TestCase):
     def test_plus_pattern1_2(self):
         pattern = "a+kb+c+"
         fsm = RegexFSM(pattern)
-        test_string = "akbbbccccccc"
+        test_string = "akbbbccccccckaskd"
         result = fsm.check_string(test_string)
         self.assertTrue(result, f"Expected True for pattern '{pattern}' and string '{test_string}'")
         self.assertEqual(result, re.match(pattern, test_string) is not None)
 
+    def test_dot_pattern1_1(self):
+        pattern = "a*b.+ch+"
+        fsm = RegexFSM(pattern)
+        test_string = "aaabxccchhhhasd"
+        result = fsm.check_string(test_string)
+        self.assertTrue(result, f"Expected True for pattern '{pattern}' and string '{test_string}'")
+        self.assertEqual(result, re.match(pattern, test_string) is not None)
+
+    def test_dot_pattern1_1_no_match(self):
+        pattern = "a*b.+ch+"
+        fsm = RegexFSM(pattern)
+        test_string = "aaabxxxxhhhhasd"
+        result = fsm.check_string(test_string)
+        self.assertFalse(result, f"Expected False for pattern '{pattern}' and string '{test_string}'")
+        self.assertEqual(result, re.match(pattern, test_string) is not None)
 
 if __name__ == "__main__":
     import unittest
