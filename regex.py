@@ -5,11 +5,11 @@ from queue import LifoQueue
 
 
 class State(ABC):
-    next_states: list[State] = []
+
 
     @abstractmethod
     def __init__(self) -> None:
-        pass
+        self.next_states: list[State] = []
 
     @abstractmethod
     def check_self(self, char: str) -> bool:
@@ -18,15 +18,20 @@ class State(ABC):
         """
         pass
 
-    def check_next(self, next_char: str) -> State | Exception:
-        for state in self.next_states:
-            if state.check_self(next_char):
-                return state
-        raise NotImplementedError("rejected string")
+    def get_self(self) -> set[State]:
+        return {self}
 
+    def check_next(self, next_char: str) -> State | Exception:
+        next_states = set()
+        for state in self.next_states:
+            for n in state.get_self():
+                if n.check_self(next_char):
+                    next_states.add(n)
+            # if state.check_self(next_char):
+            #     next_states |= state.get_self()
+        return next_states
 
 class StartState(State):
-    next_states: list[State] = []
 
     def __init__(self):
         super().__init__()
@@ -40,9 +45,14 @@ class TerminationState(State):
     state for end of string
     """
 
-    next_states: list[State] = []
+    _instance = None
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(TerminationState, cls).__new__(cls)
+        return cls._instance
 
     def __init__(self):
+        super().__init__()
         self.next_states.append(self)
 
     def check_self(self, char: str):
@@ -68,9 +78,8 @@ class AsciiState(State):
     state for alphabet letters or numbers
     """
 
-    next_states: list[State] = []
-
     def __init__(self, symbol: str) -> None:
+        super().__init__()
         self.curr_sym = symbol
 
     def check_self(self, curr_char: str) -> State | Exception:
@@ -79,31 +88,46 @@ class AsciiState(State):
 
 class StarState(State):
 
-    next_states: list[State] = []
-
     def __init__(self, checking_state: State):
-        self.next_states.append(checking_state)
-
-    def check_self(self, char):
-        for state in self.next_states:
-            if state.check_self(char):
-                return True
-
-        return False
-
-
-class PlusState(State):
-    next_states: list[State] = []
-
-    def __init__(self, checking_state: State):
+        super().__init__()
         self.next_states.append(checking_state)
 
     def check_self(self, char: str):
-        for state in self.next_states:
-            if state.check_self(char):
-                return True
+        return True
 
-        return False
+    def get_self(self) -> set[State]:
+        """
+        function returns all states that are accepted by current state
+        """
+        s = set()
+        for state in self.next_states:
+            s |= state.get_self()
+        return s|{self}
+
+    def check_next(self, next_char):
+        return super().check_next(next_char)
+
+
+class PlusState(State):
+
+    def __init__(self, checking_state: State):
+        super().__init__()
+        self.next_states.append(checking_state)
+
+    def check_self(self, char: str):
+        return True
+
+    def get_self(self) -> set[State]:
+        """
+        function returns all states that are accepted by current state
+        """
+        s = set()
+        for state in self.next_states:
+            s |= state.get_self()
+        return s|{self}
+
+    def check_next(self, next_char):
+        return super().check_next(next_char)
 
 
 class RegexFSM:
@@ -148,8 +172,34 @@ class RegexFSM:
         last_state.next_states.append(TerminationState())
 
 
-    def check_string(self):
-        pass  # Implement
+    def check_string(self, string: str) -> bool:
+        """
+        function checks whether string is accepted by regex
+        """
+        prev_states = {self.curr_state}
+        for char in string:
+            new_states = set()
+            for state in prev_states:
+                try:
+                    new_states |= state.check_next(char)
+                except NotImplementedError:
+                    pass
+            if len(new_states) == 0:
+                return False
+            if TerminationState() in new_states:
+                return True
+            prev_states = new_states
+        new_states = set()
+        for state in prev_states:
+            try:
+                new_states |= state.check_next(char)
+            except NotImplementedError:
+                pass
+        if len(new_states) == 0:
+            return False
+        if TerminationState() in new_states:
+            return True
+        return TerminationState() in prev_states
 
 
 if __name__ == "__main__":
@@ -159,4 +209,5 @@ if __name__ == "__main__":
 
     print(regex_compiled.check_string("aaaaaa4uhi"))  # True
     print(regex_compiled.check_string("4uhi"))  # True
+    print(regex_compiled.check_string("a4uhi"))  # True
     print(regex_compiled.check_string("meow"))  # False
