@@ -122,6 +122,61 @@ class TestRegexFSM(TestCase):
         self.assertFalse(result, f"Expected False for pattern '{pattern}' and string '{test_string}'")
         self.assertEqual(result, re.match(pattern, test_string) is not None)
 
+    def test_bracket_pattern1_1(self):
+        pattern = "a[bcd]ef"
+        fsm = RegexFSM(pattern)
+        test_string = "abef"
+        result = fsm.check_string(test_string)
+        self.assertTrue(result, f"Expected True for pattern '{pattern}' and string '{test_string}'")
+        self.assertEqual(result, re.match(pattern, test_string) is not None)
+
+    def test_bracket_pattern1_2(self):
+        pattern = "a[b-d]ef"
+        fsm = RegexFSM(pattern)
+        test_string = "acef"
+        result = fsm.check_string(test_string)
+        self.assertTrue(result, f"Expected True for pattern '{pattern}' and string '{test_string}'")
+        self.assertEqual(result, re.match(pattern, test_string) is not None)
+
+    def test_bracket_pattern2(self):
+        pattern = "k[a-x]ef"
+        fsm = RegexFSM(pattern)
+        test_string = "klefasd"
+        result = fsm.check_string(test_string)
+        self.assertTrue(result, f"Expected True for pattern '{pattern}' and string '{test_string}'")
+        self.assertEqual(result, re.match(pattern, test_string) is not None)
+
+    def test_bracket_pattern2_no_match(self):
+        pattern = "k[a-x]ef"
+        fsm = RegexFSM(pattern)
+        test_string = "kzefasd"
+        result = fsm.check_string(test_string)
+        self.assertFalse(result, f"Expected False for pattern '{pattern}' and string '{test_string}'")
+        self.assertEqual(result, re.match(pattern, test_string) is not None)
+
+    def test_bracket_pattern3_1(self):
+        pattern = "k[a-x1-8]ef"
+        fsm = RegexFSM(pattern)
+        test_string = "klefasd"
+        result = fsm.check_string(test_string)
+        self.assertTrue(result, f"Expected True for pattern '{pattern}' and string '{test_string}'")
+        self.assertEqual(result, re.match(pattern, test_string) is not None)
+    def test_bracket_pattern3_2(self):
+        pattern = "k[a-x1-8]ef"
+        fsm = RegexFSM(pattern)
+        test_string = "k5efasd"
+        result = fsm.check_string(test_string)
+        self.assertTrue(result, f"Expected True for pattern '{pattern}' and string '{test_string}'")
+        self.assertEqual(result, re.match(pattern, test_string) is not None)
+    def test_bracket_pattern3_2_no_match(self):
+        pattern = "k[a-x1-8]ef"
+        fsm = RegexFSM(pattern)
+        test_string = "k9efasd"
+        result = fsm.check_string(test_string)
+        self.assertFalse(result, f"Expected False for pattern '{pattern}' and string '{test_string}'")
+        self.assertEqual(result, re.match(pattern, test_string) is not None)
+
+
 if __name__ == "__main__":
     import unittest
     unittest.main()

@@ -130,6 +130,28 @@ class PlusState(State):
         return super().check_next(next_char)
 
 
+class CharactersState(State):
+    def __init__(self, symbols: str) -> None:
+        super().__init__()
+        self.symbols = set()
+        self.add_symbols(symbols)
+
+
+    def add_symbols(self, symbols: str) -> None:
+        i = 0
+        while i < len(symbols):
+            if symbols[i] == "-":
+                for j in range(ord(symbols[i-1]), ord(symbols[i+1])+1):
+                    self.symbols.add(chr(j))
+            else:
+                self.symbols.add(symbols[i])
+            i += 1
+
+    def check_self(self, curr_char: str) -> State | Exception:
+        return curr_char in self.symbols
+
+
+
 class RegexFSM:
     """
     https://medium.com/@phanindramoganti/regex-under-the-hood-implementing-a-simple-regex-compiler-in-go-ef2af5c6079
@@ -142,11 +164,26 @@ class RegexFSM:
 
         stack = LifoQueue()
         stack.put(self.curr_state)
+        bracket_state = False
+        brackets_string = ""
         for char in regex_expr:
             new_state = None
 
+            if bracket_state:
+                if char == "]":
+                    new_state = CharactersState(brackets_string)
+                    bracket_state = False
+                    brackets_string = ""
+                else:
+                    brackets_string += char
+                    continue
 
-            if char == ".":
+
+            if char == "[":
+                bracket_state = True
+                continue
+
+            elif char == ".":
                 new_state = DotState()
             elif char == "*":
                 # make * state before the prev state
@@ -159,9 +196,10 @@ class RegexFSM:
             elif char == "+":
                 new_state = PlusState(prev_state)
 
-            elif char.isascii():
+            elif char.isalnum():
                 new_state = AsciiState(char)
-            else:
+
+            if new_state is None:
                 raise AttributeError("Character is not supported")
 
             prev_state.next_states.append(new_state)
