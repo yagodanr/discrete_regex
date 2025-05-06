@@ -36,8 +36,8 @@ class StartState(State):
     def __init__(self):
         super().__init__()
 
-    def check_self(self, char:str):
-        return super().check_self(char)
+    def check_self(self, char: str):
+        return True
 
 
 class TerminationState(State):
@@ -134,10 +134,10 @@ class RegexFSM:
     """
     https://medium.com/@phanindramoganti/regex-under-the-hood-implementing-a-simple-regex-compiler-in-go-ef2af5c6079
     """
-    curr_state: State = StartState()
+
 
     def __init__(self, regex_expr: str) -> None:
-
+        self.curr_state: State = StartState()
         prev_state = self.curr_state
 
         stack = LifoQueue()
@@ -186,8 +186,6 @@ class RegexFSM:
                     pass
             if len(new_states) == 0:
                 return False
-            if TerminationState() in new_states:
-                return True
             prev_states = new_states
         new_states = set()
         for state in prev_states:
@@ -210,4 +208,5 @@ if __name__ == "__main__":
     print(regex_compiled.check_string("aaaaaa4uhi"))  # True
     print(regex_compiled.check_string("4uhi"))  # True
     print(regex_compiled.check_string("a4uhi"))  # True
+    print(regex_compiled.check_string("a4uhhi"))  # True
     print(regex_compiled.check_string("meow"))  # False
